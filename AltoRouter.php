@@ -119,7 +119,7 @@ class AltoRouter
      */
     public function map($method, $route, $target, $name = null)
     {
-
+        if(substr($route, -1) != "/") $this->map($method, $route."/", $target);
         $this->routes[] = [$method, $route, $target, $name];
 
         if ($name) {
@@ -129,7 +129,16 @@ class AltoRouter
             $this->namedRoutes[$name] = $route;
         }
 
-        return;
+        return $this;
+    }
+
+    public function get($route, $target, $name = null)
+    {
+        return $this->map("GET", $route, $target, $name = null);
+    }
+    public function post($route, $target, $name = null)
+    {
+        return $this->map("POST", $route, $target, $name = null);
     }
 
     /**
@@ -193,7 +202,7 @@ class AltoRouter
 
         // set Request Url if it isn't passed as parameter
         if ($requestUrl === null) {
-            $requestUrl = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+            $requestUrl = isset($_SERVER['REDIRECT_URL']) ? $_SERVER['REDIRECT_URL'] : '/';
         }
 
         // strip base path from request url
@@ -204,7 +213,7 @@ class AltoRouter
             $requestUrl = substr($requestUrl, 0, $strpos);
         }
 
-        $lastRequestUrlChar = $requestUrl ? $requestUrl[strlen($requestUrl)-1] : '';
+        $lastRequestUrlChar = $requestUrl[strlen($requestUrl)-1];
 
         // set Request Method if it isn't passed as a parameter
         if ($requestMethod === null) {
@@ -254,12 +263,20 @@ class AltoRouter
                 return [
                     'target' => $target,
                     'params' => $params,
-                    'name' => $name
+                    'name' => $name,
+                    'get' => static::getverif($_GET)
                 ];
             }
         }
 
         return false;
+    }
+
+    private static function getverif($get) {
+        foreach ($get as $key => $value) {
+            $get[htmlspecialchars($key)] = htmlspecialchars($value);
+        }
+        return $get;
     }
 
     /**
