@@ -10,6 +10,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 namespace NonozgYtb;
 
 use \Traversable;
@@ -112,6 +113,14 @@ class AltoRouter
         $this->matchTypes = array_merge($this->matchTypes, $matchTypes);
     }
 
+    private function routeIsset($method, $route)
+    {
+        foreach ($this->routes as $element):
+            if(in_array($method, $element) && in_array($route, $element)) return true;
+        endforeach;
+        return false;
+    }
+
     /**
      * Map a route to a target
      *
@@ -123,7 +132,19 @@ class AltoRouter
      */
     public function map($method, $route, $target, $name = null)
     {
-        if(substr($route, -1) != "/") $this->map($method, $route."/", $target);
+        /*if (strlen($route) > 2) {
+            //dump($route);
+            if (!self::endsWith($route, "/")) {
+                $this->map($method, $route . "/", $target, $name = null);
+                dump($route . "/", $this->routeIsset($method, $route . "/"), $this->routeIsset($method, $route), $this->routeIsset($method,substr($route, 0, -1) . "/"));
+            } elseif (self::endsWith($route, "/") && !self::secondEndsWith($route, "/")) {
+                $this->map($method, substr($route, 0, -1), $target, $name = null);
+                dump(2, $route . "/", $this->routeIsset($method, $route . "/"), $this->routeIsset($method, $route), $this->routeIsset($method,substr($route, 0, -1) . "/"));
+            }else{
+                dump(3);
+            };
+        }*/
+
         $this->routes[] = [$method, $route, $target, $name];
 
         if ($name) {
@@ -138,6 +159,8 @@ class AltoRouter
 
     public function get($route, $target, $name = null)
     {
+        if(self::endsWith($route, "/")&&!self::secondEndsWith($route, "/")) $this->map("GET", substr($route, 0, -1), $target, $name = null);  
+        if(!self::endsWith($route, "/")) $this->map("GET", $route."/", $target, $name = null);
         return $this->map("GET", $route, $target, $name = null);
     }
     public function post($route, $target, $name = null)
@@ -217,7 +240,7 @@ class AltoRouter
             $requestUrl = substr($requestUrl, 0, $strpos);
         }
 
-        $lastRequestUrlChar = $requestUrl[strlen($requestUrl)-1];
+        $lastRequestUrlChar = $requestUrl[strlen($requestUrl) - 1];
 
         // set Request Method if it isn't passed as a parameter
         if ($requestMethod === null) {
@@ -246,8 +269,8 @@ class AltoRouter
                 $match = strcmp($requestUrl, $route) === 0;
             } else {
                 // Compare longest non-param string with url before moving on to regex
-				// Check if last character before param is a slash, because it could be optional if param is optional too (see https://github.com/dannyvankooten/AltoRouter/issues/241)
-                if (strncmp($requestUrl, $route, $position) !== 0 && ($lastRequestUrlChar === '/' || $route[$position-1] !== '/')) {
+                // Check if last character before param is a slash, because it could be optional if param is optional too (see https://github.com/dannyvankooten/AltoRouter/issues/241)
+                if (strncmp($requestUrl, $route, $position) !== 0 && ($lastRequestUrlChar === '/' || $route[$position - 1] !== '/')) {
                     continue;
                 }
 
@@ -276,7 +299,8 @@ class AltoRouter
         return false;
     }
 
-    private static function getverif($get) {
+    private static function getverif($get)
+    {
         foreach ($get as $key => $value) {
             $get[htmlspecialchars($key)] = htmlspecialchars($value);
         }
@@ -306,18 +330,47 @@ class AltoRouter
 
                 //Older versions of PCRE require the 'P' in (?P<named>)
                 $pattern = '(?:'
-                        . ($pre !== '' ? $pre : null)
-                        . '('
-                        . ($param !== '' ? "?P<$param>" : null)
-                        . $type
-                        . ')'
-                        . $optional
-                        . ')'
-                        . $optional;
+                    . ($pre !== '' ? $pre : null)
+                    . '('
+                    . ($param !== '' ? "?P<$param>" : null)
+                    . $type
+                    . ')'
+                    . $optional
+                    . ')'
+                    . $optional;
 
                 $route = str_replace($block, $pattern, $route);
             }
         }
         return "`^$route$`u";
+    }
+
+    /*private static function startsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+        return substr($haystack, 0, $length) === $needle;
+    }
+    private static function secondStartsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+        return substr($haystack, 1, $length) === $needle;
+    }*/
+
+    private static function endsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+        if (!$length) {
+            return true;
+        }
+        return substr($haystack, -$length) === $needle;
+    }
+
+    private static function secondEndsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+        if (!$length) {
+            return true;
+        }
+        return substr(substr($haystack, 0, -1), -$length) === $needle;
     }
 }
